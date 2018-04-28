@@ -34,11 +34,18 @@ func (p *HttpResponse) addHeader(key string, value string) {
 
 func (p *HttpResponse) addBody(body string) {
 	p.body = body
+	count := utf8.RuneCountInString(body)
+	p.addHeader("Content-Length", strconv.Itoa(count))
 }
 
-func (p *HttpResponse) addBodyHtml() {
+func (p *HttpResponse) addBodyHtml(path string) {
 	str := ""
-	file, err := os.Open("hello.html")
+	filename := "index.html"
+	if path == "/hello" {
+		filename = "hello.html"
+	}
+
+	file, err := os.Open(filename)
 	if err != nil {
 		// Openエラー
 	}

@@ -30,10 +30,13 @@ func main() {
 					fmt.Println(err)
 				}
 
+				request := NewHttpRequest()
+				request.readHeader(message)
+
 				response := NewHttpResponse()
 				response.addHeader("Content-Type", "text/html; charset=UTF-8")
 				response.addHeader("Server", "maimai")
-				response.addBodyHtml()
+				response.addBodyHtml(request.path)
 				responseMessage := response.createResponse()
 
 				connection.Write([]byte(responseMessage + "\n"))
