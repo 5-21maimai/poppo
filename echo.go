@@ -34,19 +34,17 @@ func main() {
 				request.readHeader(message)
 
 				response := NewHttpResponse()
-				response.addHeader("Content-Type", "text/html; charset=UTF-8")
-				response.addHeader("Server", "maimai")
+				response.addHeader("Server", "poppo")
 				response.addBodyFile(request.path)
-				responseMessage := response.createResponse()
+				responseMessage := response.createResponse(request.method)
 
 				connection.Write([]byte(responseMessage + "\n"))
 
-				fmt.Println(message)
-
 				if message == "" {
-					connection.Close()
+					break
 				}
 			}
+			defer connection.Close()
 
 		}()
 
