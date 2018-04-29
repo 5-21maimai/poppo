@@ -2,6 +2,9 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
+	"image/png"
 	"os"
 	"strconv"
 	"unicode/utf8"
@@ -38,13 +41,36 @@ func (p *HttpResponse) addBody(body string) {
 	p.addHeader("Content-Length", strconv.Itoa(count))
 }
 
-func (p *HttpResponse) addBodyHtml(path string) {
-	str := ""
-	filename := "index.html"
+func (p *HttpResponse) addBodyFile(path string) {
+	filename := ""
+	contentType := ""
+
 	if path == "/hello" {
 		filename = "hello.html"
+		p.body = p.createStringBody(filename)
+		contentType = "text/html; charset=UTF-8"
+	} else if path == "/sample.css" {
+		filename = "sample.css"
+		p.body = p.createStringBody(filename)
+		contentType = "text/css"
+	} else if path == "/panda.png" {
+		filename = "panda.png"
+		p.body = p.createBinaryBody(filename)
+		contentType = "image/png"
+	} else {
+		filename = "index.html"
+		p.body = p.createStringBody(filename)
+		contentType = "text/html; charset=UTF-8"
 	}
 
+	count := utf8.RuneCountInString(p.body)
+	p.addHeader("Content-Length", strconv.Itoa(count))
+
+	p.addHeader("Content-Type", contentType)
+}
+
+func (p *HttpResponse) createStringBody(filename string) string {
+	str := ""
 	file, err := os.Open(filename)
 	if err != nil {
 		// Openエラー
@@ -60,8 +86,26 @@ func (p *HttpResponse) addBodyHtml(path string) {
 		str = str + sc.Text() + "\n"
 	}
 
-	p.body = str
+	return str
 
-	count := utf8.RuneCountInString(str)
-	p.addHeader("Content-Length", strconv.Itoa(count))
+}
+
+func (p *HttpResponse) createBinaryBody(filename string) string {
+	file, err := os.Open(filename)
+	if err != nil {
+		// Openエラー
+	}
+
+	img, err := png.Decode(file)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	buffer := new(bytes.Buffer)
+	if err := png.Encode(buffer, img); err != nil {
+		fmt.Println(err)
+	}
+	imageBytes := buffer.Bytes()
+	return string(imageBytes)
+
 }
