@@ -1,11 +1,7 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
-	"fmt"
-	"image/gif"
-	"image/png"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -21,9 +17,11 @@ func NewHttpResponse() *HttpResponse {
 	param := new(HttpResponse)
 	param.header = map[string]string{}
 	param.status = "200 OK"
+	param.addHeaderParts("Server", "poppo")
 	return param
 }
 
+// レスポンスを作る大元のメソッド
 func (p *HttpResponse) createResponse(method string) string {
 	switch method {
 	case "GET":
@@ -31,13 +29,14 @@ func (p *HttpResponse) createResponse(method string) string {
 	case "HEAD":
 		return p.createHeadResponse()
 	default:
-		return p.createInvalidResponse()
+		return p.create405Response()
 	}
 }
 
-func (p *HttpResponse) createInvalidResponse() string {
+// 405用のレスポンス
+func (p *HttpResponse) create405Response() string {
+	p.addBodyPartsFromFile("/methodNotAllowed")
 	p.status = "405 Method Not Allowed"
-	p.addBodyFile("/methodNotAllowed")
 	http := "HTTP/1.0" + " " + p.status
 	headerString := ""
 	for k, v := range p.header {
@@ -46,6 +45,7 @@ func (p *HttpResponse) createInvalidResponse() string {
 	return http + headerString + "\n\n" + p.body
 }
 
+// GETのレスポンス
 func (p *HttpResponse) createGetResponse() string {
 	http := "HTTP/1.0" + " " + p.status
 	headerString := ""
@@ -55,6 +55,7 @@ func (p *HttpResponse) createGetResponse() string {
 	return http + headerString + "\n\n" + p.body
 }
 
+// HEADのレスポンス
 func (p *HttpResponse) createHeadResponse() string {
 	http := "HTTP/1.0 200 OK"
 	headerString := ""
@@ -64,115 +65,64 @@ func (p *HttpResponse) createHeadResponse() string {
 	return http + headerString + "\n"
 }
 
-func (p *HttpResponse) addHeader(key string, value string) {
+// HttpResponse.headerのmapに項目を追加する
+func (p *HttpResponse) addHeaderParts(key string, value string) {
 	p.header[key] = value
 }
 
-func (p *HttpResponse) addBody(body string) {
+// HttpResponse.bodyにコンテンツを追加する（文字列）
+func (p *HttpResponse) addBodyParts(body string) {
 	p.body = body
 	count := len(body)
-	p.addHeader("Content-Length", strconv.Itoa(count))
+	p.addHeaderParts("Content-Length", strconv.Itoa(count))
+	p.addHeaderParts("Content-Type", "text/html; charset=UTF-8")
+
 }
 
-func (p *HttpResponse) addBodyFile(path string) {
+// HttpResponse.bodyにコンテンツを追加する（ファイルを読み込む）
+func (p *HttpResponse) addBodyPartsFromFile(path string) {
 	filename := ""
-	contentType := ""
 
-	if path == "/hello" {
+	switch path {
+	case "/hello":
 		filename = "hello.html"
 		p.body = p.createStringBody(filename)
-		contentType = "text/html; charset=UTF-8"
-	} else if path == "/sample.css" {
-		filename = "sample.css"
-		p.body = p.createStringBody(filename)
-		contentType = "text/css"
-	} else if path == "/panda.png" {
-		filename = "panda.png"
-		p.body = p.createBinaryBody(filename)
-		contentType = "image/png; charset=UTF-8"
-	} else if path == "/twinsparrot.gif" {
-		filename = "twinsparrot.gif"
-		p.body = p.createBinaryBody(filename)
-		contentType = "image/gif; charset=UTF-8"
-	} else if path == "/sample.js" {
-		filename = "sample.js"
-		p.body = p.createStringBody(filename)
-		contentType = "text/javascript; charset=UTF-8"
-	} else if path == "/" {
+	case "/":
 		filename = "index.html"
 		p.body = p.createStringBody(filename)
-		contentType = "text/html; charset=UTF-8"
-	} else if path == "/methodNotAllowed" {
+	case "/methodNotAllowed":
 		filename = "methodNotAllowed.html"
 		p.body = p.createStringBody(filename)
-		contentType = "text/html; charset=UTF-8"
-	} else {
-		filename = "notFound.html"
-		p.body = p.createStringBody(filename)
-		contentType = "text/html; charset=UTF-8"
-		p.status = "404 Not Found"
-	}
-
-	count := len(p.body)
-	p.addHeader("Content-Length", strconv.Itoa(count))
-
-	p.addHeader("Content-Type", contentType)
-}
-
-func (p *HttpResponse) createStringBody(filename string) string {
-	str := ""
-	file, err := os.Open(filename)
-	if err != nil {
-		// Openエラー
-	}
-	defer file.Close()
-
-	sc := bufio.NewScanner(file)
-	for sc.Scan() {
-		if err := sc.Err(); err != nil {
-			// エラー処理
-			break
-		}
-		str = str + sc.Text() + "\n"
-	}
-
-	return str
-
-}
-
-func (p *HttpResponse) createBinaryBody(filename string) string {
-	file, err := os.Open(filename)
-	if err != nil {
-		// Openエラー
-	}
-
-	if strings.Contains(filename, ".png") {
-		img, err := png.Decode(file)
-		if err != nil {
-			fmt.Println(err)
+	case "/hogehoge":
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("パニック！！！: %v", err)
+				filename = "internalServerError.html"
+				p.body = p.createStringBody(filename)
+				p.status = "500 Internal Server Error"
+			}
+		}()
+		panic("Occured panic!")
+	default:
+		filename = strings.Trim(path, "/")
+		if _, err := os.Stat(filename); err != nil {
+			// not found
+			filename = "notFound.html"
+			p.body = p.createStringBody(filename)
+			p.status = "404 Not Found"
+		} else {
+			if strings.Contains(filename, ".png") || strings.Contains(filename, ".gif") {
+				p.body = p.createBinaryBody(filename)
+			} else {
+				p.body = p.createStringBody(filename)
+			}
 		}
 
-		buffer := new(bytes.Buffer)
-		if err := png.Encode(buffer, img); err != nil {
-			fmt.Println(err)
-		}
-		imageBytes := buffer.Bytes()
-		return string(imageBytes)
-	} else if strings.Contains(filename, ".gif") {
-		img, err := gif.Decode(file)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		buffer := new(bytes.Buffer)
-		if err := gif.Encode(buffer, img, nil); err != nil {
-			fmt.Println(err)
-		}
-
-		imageBytes := buffer.Bytes()
-		return string(imageBytes)
 	}
 
-	return "hoge"
+	// bodyからcontentlengthを計算してheaderに追加
+	p.addHeaderParts("Content-Length", makeContentLength(p.body))
 
+	// filenameからcontenttypeを設定してheaderに追加
+	p.addHeaderParts("Content-Type", makeContentType(filename))
 }

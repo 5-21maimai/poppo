@@ -9,8 +9,8 @@ type HttpRequest struct {
 
 func NewHttpRequest() *HttpRequest {
 	param := new(HttpRequest)
-	param.method = "GET"
-	param.path = "/"
+	param.method = ""
+	param.path = ""
 	return param
 }
 

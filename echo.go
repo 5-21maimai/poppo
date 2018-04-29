@@ -33,12 +33,18 @@ func main() {
 				request := NewHttpRequest()
 				request.readHeader(message)
 
-				response := NewHttpResponse()
-				response.addHeader("Server", "poppo")
-				response.addBodyFile(request.path)
-				responseMessage := response.createResponse(request.method)
+				if request.path == "" || request.method == "" {
+					response := NewHttpResponse()
+					responseMessage := response.create405Response()
 
-				connection.Write([]byte(responseMessage + "\n"))
+					connection.Write([]byte(responseMessage + "\n"))
+				} else {
+					response := NewHttpResponse()
+					response.addBodyPartsFromFile(request.path)
+					responseMessage := response.createResponse(request.method)
+
+					connection.Write([]byte(responseMessage + "\n"))
+				}
 
 				if message == "" {
 					break

@@ -9,7 +9,7 @@ func TestNewHttpResponse(t *testing.T) {
 	response := NewHttpResponse()
 
 	actual := response.status
-	expected := ""
+	expected := "200 OK"
 	if actual != expected {
 		t.Errorf("got %v\nwant %v", actual, expected)
 	}
@@ -21,25 +21,15 @@ func TestNewHttpResponse(t *testing.T) {
 	}
 
 	actual2 := len(response.header)
-	expected2 := 0
+	expected2 := 1
 	if actual2 != expected2 {
-		t.Errorf("got %v\nwant %v", actual, expected)
-	}
-}
-
-func TestAddBody(t *testing.T) {
-	response := NewHttpResponse()
-	response.addBody("hoge")
-	actual := response.body
-	expected := "hoge"
-	if actual != expected {
 		t.Errorf("got %v\nwant %v", actual, expected)
 	}
 }
 
 func TestAddHeader(t *testing.T) {
 	response := NewHttpResponse()
-	response.addHeader("hoge", "fuga")
+	response.addHeaderParts("hoge", "fuga")
 	actual := response.header["hoge"]
 	expected := "fuga"
 	if actual != expected {
@@ -47,27 +37,40 @@ func TestAddHeader(t *testing.T) {
 	}
 }
 
-func TestCreateStatusLine(t *testing.T) {
+func TestCreateStatusLine200(t *testing.T) {
 	response := NewHttpResponse()
-	response.addHeader("Content-Type", "text/html")
-	response.addHeader("Server", "maimai")
-	response.addBody("<h1>matsui mai</h1>")
 
-	responseHeader := strings.Split(response.createResponse(), "\n")
+	responseHeader := strings.Split(response.createResponse("GET"), "\n")
 	actual := responseHeader[0]
 	expected := "HTTP/1.0 200 OK"
 	if actual != expected {
 		t.Errorf("got %v\nwant %v", actual, expected)
 	}
+
+	responseHeader = strings.Split(response.createResponse("HEAD"), "\n")
+	actual = responseHeader[0]
+	expected = "HTTP/1.0 200 OK"
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
 }
 
-func TestCreateHeader(t *testing.T) {
+func TestCreateStatusLine405(t *testing.T) {
 	response := NewHttpResponse()
-	response.addHeader("Content-Type", "text/html")
-	response.addHeader("Server", "maimai")
-	response.addBody("<h1>matsui mai</h1>")
 
-	responseHeader := response.createResponse()
+	responseHeader := strings.Split(response.createResponse("hoge"), "\n")
+	actual := responseHeader[0]
+	expected := "HTTP/1.0 405 Method Not Allowed"
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+}
+
+func TestCreateHeaderFromString(t *testing.T) {
+	response := NewHttpResponse()
+	response.addBodyParts("<h1>matsui mai</h1>")
+
+	responseHeader := response.createResponse("GET")
 	actual := strings.Contains(responseHeader, "Content-Type: text/html")
 	expected := true
 	if actual != expected {
@@ -81,60 +84,108 @@ func TestCreateHeader(t *testing.T) {
 	}
 }
 
-func TestCreateBody(t *testing.T) {
+func TestCreateBodyFromIndexHtml(t *testing.T) {
 	response := NewHttpResponse()
-	response.addHeader("Content-Type", "text/html")
-	response.addHeader("Server", "maimai")
-	response.addBody("<h1>matsui mai</h1>")
+	response.addBodyPartsFromFile("/")
 
-	responseHeader := response.createResponse()
-	actual := strings.Contains(responseHeader, "<h1>matsui mai</h1>")
+	actual := strings.Contains(response.body, "index.html")
 	expected := true
 	if actual != expected {
 		t.Errorf("got %v\nwant %v", actual, expected)
 	}
 }
 
-func TestCreateBodyHtmlDefault(t *testing.T) {
+func TestCreateHeaderFromHelloHtml(t *testing.T) {
 	response := NewHttpResponse()
-	response.addHeader("Content-Type", "text/html")
-	response.addHeader("Server", "maimai")
-	response.addBodyHtml("/")
+	response.addBodyPartsFromFile("/hello")
 
-	responseString := response.createResponse()
-	actual := strings.Contains(responseString, "index.html")
+	actual := strings.Contains(response.body, "hello.html")
 	expected := true
-
 	if actual != expected {
 		t.Errorf("got %v\nwant %v", actual, expected)
 	}
 }
 
-func TestCreateBodyHtmlHello(t *testing.T) {
+func TestCreateHeaderFromNotAllowedHtml(t *testing.T) {
 	response := NewHttpResponse()
-	response.addHeader("Content-Type", "text/html")
-	response.addHeader("Server", "maimai")
-	response.addBodyHtml("/hello")
+	response.addBodyPartsFromFile("/methodNotAllowed")
 
-	responseString := response.createResponse()
-	actual := strings.Contains(responseString, "hello.html")
+	actual := strings.Contains(response.body, "methodNotAllowed.html")
 	expected := true
-
 	if actual != expected {
 		t.Errorf("got %v\nwant %v", actual, expected)
 	}
 }
 
-func TestCreateBodyHtmlHoge(t *testing.T) {
+func TestCreateHeaderFromNotFoundHtml(t *testing.T) {
 	response := NewHttpResponse()
-	response.addHeader("Content-Type", "text/html")
-	response.addHeader("Server", "maimai")
-	response.addBodyHtml("/hoge")
+	response.addBodyPartsFromFile("/fugafuga")
 
-	responseString := response.createResponse()
-	actual := strings.Contains(responseString, "index.html")
+	actual := strings.Contains(response.body, "notFound.html")
 	expected := true
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+}
 
+func TestCreateHeaderFromPathHtml(t *testing.T) {
+	response := NewHttpResponse()
+	response.addBodyPartsFromFile("/sample.js")
+
+	actual := strings.Contains(response.body, "sample.js")
+	expected := true
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+}
+
+func TestCreateResponseGET(t *testing.T) {
+	response := NewHttpResponse()
+	response.body = "<h1>hello world</h1>"
+	response.header["Content-Length"] = "20"
+	response.header["Content-Type"] = "text/html"
+	str := response.createResponse("GET")
+
+	actual := strings.Contains(str, "Content-Type: text/html")
+	expected := true
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+
+	actual = strings.Contains(str, "Content-Length: 20")
+	expected = true
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+
+	actual = strings.Contains(str, "\n\n<h1>hello world</h1>")
+	expected = true
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+}
+
+func TestCreateResponseHEAD(t *testing.T) {
+	response := NewHttpResponse()
+	response.body = "<h1>hello world</h1>"
+	response.header["Content-Length"] = "20"
+	response.header["Content-Type"] = "text/html"
+	str := response.createResponse("HEAD")
+
+	actual := strings.Contains(str, "Content-Type: text/html")
+	expected := true
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+
+	actual = strings.Contains(str, "Content-Length: 20")
+	expected = true
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+
+	actual = strings.Contains(str, "\n\n<h1>hello world</h1>")
+	expected = false
 	if actual != expected {
 		t.Errorf("got %v\nwant %v", actual, expected)
 	}
