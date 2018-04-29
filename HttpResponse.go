@@ -20,6 +20,7 @@ type HttpResponse struct {
 func NewHttpResponse() *HttpResponse {
 	param := new(HttpResponse)
 	param.header = map[string]string{}
+	param.status = "200 OK"
 	return param
 }
 
@@ -30,12 +31,23 @@ func (p *HttpResponse) createResponse(method string) string {
 	case "HEAD":
 		return p.createHeadResponse()
 	default:
-		return "hoge"
+		return p.createInvalidResponse()
 	}
 }
 
+func (p *HttpResponse) createInvalidResponse() string {
+	p.status = "405 Method Not Allowed"
+	p.addBodyFile("/methodNotAllowed")
+	http := "HTTP/1.0" + " " + p.status
+	headerString := ""
+	for k, v := range p.header {
+		headerString = headerString + "\n" + k + ": " + v
+	}
+	return http + headerString + "\n\n" + p.body
+}
+
 func (p *HttpResponse) createGetResponse() string {
-	http := "HTTP/1.0 200 OK"
+	http := "HTTP/1.0" + " " + p.status
 	headerString := ""
 	for k, v := range p.header {
 		headerString = headerString + "\n" + k + ": " + v
@@ -86,10 +98,19 @@ func (p *HttpResponse) addBodyFile(path string) {
 		filename = "sample.js"
 		p.body = p.createStringBody(filename)
 		contentType = "text/javascript; charset=UTF-8"
-	} else {
+	} else if path == "/" {
 		filename = "index.html"
 		p.body = p.createStringBody(filename)
 		contentType = "text/html; charset=UTF-8"
+	} else if path == "/methodNotAllowed" {
+		filename = "methodNotAllowed.html"
+		p.body = p.createStringBody(filename)
+		contentType = "text/html; charset=UTF-8"
+	} else {
+		filename = "notFound.html"
+		p.body = p.createStringBody(filename)
+		contentType = "text/html; charset=UTF-8"
+		p.status = "404 Not Found"
 	}
 
 	count := len(p.body)
