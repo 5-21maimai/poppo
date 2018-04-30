@@ -1,9 +1,7 @@
 package main
 
 import (
-	"os"
 	"strconv"
-	"strings"
 )
 
 type HttpResponse struct {
@@ -88,50 +86,4 @@ func (p *HttpResponse) addBodyParts(body string) {
 	p.addHeaderParts("Content-Length", strconv.Itoa(count))
 	p.addHeaderParts("Content-Type", "text/html; charset=UTF-8")
 
-}
-
-// HttpResponse.bodyにコンテンツを追加する（ファイルを読み込む）
-func (p *HttpResponse) addBodyPartsFromFile(path string) {
-	filename := ""
-
-	switch path {
-	case "/hello":
-		filename = "hello.html"
-		p.body = p.createStringBody(filename)
-	case "/":
-		filename = "index.html"
-		p.body = p.createStringBody(filename)
-	case "/eevee":
-		filename = "eevee.html"
-		p.body = p.createStringBody(filename)
-	case "/methodNotAllowed":
-		filename = "methodNotAllowed.html"
-		p.body = p.createStringBody(filename)
-	default:
-		filename = strings.Trim(path, "/")
-		if _, err := os.Stat(filename); err != nil {
-			// not found
-			filename = "notFound.html"
-			p.body = p.createStringBody(filename)
-			p.status = "404 Not Found"
-		} else {
-			if strings.Contains(filename, ".png") || strings.Contains(filename, ".gif") {
-				p.body = p.createBinaryBody(filename)
-			} else {
-				p.body = p.createStringBody(filename)
-			}
-		}
-	}
-
-	if p.body == "" {
-		filename = "internalServerError.html"
-		p.body = p.createStringBody(filename)
-		p.status = "500 Internal Server Error"
-	}
-
-	// bodyからcontentlengthを計算してheaderに追加
-	p.addHeaderParts("Content-Length", makeContentLength(p.body))
-
-	// filenameからcontenttypeを設定してheaderに追加
-	p.addHeaderParts("Content-Type", makeContentType(filename))
 }

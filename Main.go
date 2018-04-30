@@ -8,7 +8,7 @@ import (
 
 func main() {
 	listener, err := net.Listen("tcp", "0.0.0.0:1234")
-	fmt.Println("通信開始")
+	fmt.Println("サーバーを立ち上げる")
 
 	if err != nil {
 		fmt.Println(err)
