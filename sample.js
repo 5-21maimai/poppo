@@ -1,4 +1,4 @@
 // sample.js
 function showAlert(){
-  window.alert('JSが呼ばれましたよ〜〜');
+  window.alert('正解はポッポです！！');
 }

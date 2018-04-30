@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -37,6 +36,18 @@ func (p *HttpResponse) createResponse(method string) string {
 func (p *HttpResponse) create405Response() string {
 	p.addBodyPartsFromFile("/methodNotAllowed")
 	p.status = "405 Method Not Allowed"
+	http := "HTTP/1.0" + " " + p.status
+	headerString := ""
+	for k, v := range p.header {
+		headerString = headerString + "\n" + k + ": " + v
+	}
+	return http + headerString + "\n\n" + p.body
+}
+
+// 500用のレスポンス
+func (p *HttpResponse) create500Response() string {
+	p.addBodyPartsFromFile("/internalServerError")
+	p.status = "500 Internal Server Error"
 	http := "HTTP/1.0" + " " + p.status
 	headerString := ""
 	for k, v := range p.header {
@@ -90,19 +101,12 @@ func (p *HttpResponse) addBodyPartsFromFile(path string) {
 	case "/":
 		filename = "index.html"
 		p.body = p.createStringBody(filename)
+	case "/eevee":
+		filename = "eevee.html"
+		p.body = p.createStringBody(filename)
 	case "/methodNotAllowed":
 		filename = "methodNotAllowed.html"
 		p.body = p.createStringBody(filename)
-	case "/hogehoge":
-		defer func() {
-			if err := recover(); err != nil {
-				log.Printf("パニック！！！: %v", err)
-				filename = "internalServerError.html"
-				p.body = p.createStringBody(filename)
-				p.status = "500 Internal Server Error"
-			}
-		}()
-		panic("Occured panic!")
 	default:
 		filename = strings.Trim(path, "/")
 		if _, err := os.Stat(filename); err != nil {
@@ -117,7 +121,12 @@ func (p *HttpResponse) addBodyPartsFromFile(path string) {
 				p.body = p.createStringBody(filename)
 			}
 		}
+	}
 
+	if p.body == "" {
+		filename = "internalServerError.html"
+		p.body = p.createStringBody(filename)
+		p.status = "500 Internal Server Error"
 	}
 
 	// bodyからcontentlengthを計算してheaderに追加

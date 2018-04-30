@@ -95,7 +95,7 @@ func TestCreateBodyFromIndexHtml(t *testing.T) {
 	}
 }
 
-func TestCreateHeaderFromHelloHtml(t *testing.T) {
+func TestCreateBodyFromHelloHtml(t *testing.T) {
 	response := NewHttpResponse()
 	response.addBodyPartsFromFile("/hello")
 
@@ -106,7 +106,7 @@ func TestCreateHeaderFromHelloHtml(t *testing.T) {
 	}
 }
 
-func TestCreateHeaderFromNotAllowedHtml(t *testing.T) {
+func TestCreateBodyFromNotAllowedHtml(t *testing.T) {
 	response := NewHttpResponse()
 	response.addBodyPartsFromFile("/methodNotAllowed")
 
@@ -117,7 +117,7 @@ func TestCreateHeaderFromNotAllowedHtml(t *testing.T) {
 	}
 }
 
-func TestCreateHeaderFromNotFoundHtml(t *testing.T) {
+func TestCreateBodyFromNotFoundHtml(t *testing.T) {
 	response := NewHttpResponse()
 	response.addBodyPartsFromFile("/fugafuga")
 
@@ -128,11 +128,44 @@ func TestCreateHeaderFromNotFoundHtml(t *testing.T) {
 	}
 }
 
-func TestCreateHeaderFromPathHtml(t *testing.T) {
+func TestCreateBodyFromPathHtml(t *testing.T) {
 	response := NewHttpResponse()
 	response.addBodyPartsFromFile("/sample.js")
 
 	actual := strings.Contains(response.body, "sample.js")
+	expected := true
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+}
+
+func TestCreateBodyFromPanic(t *testing.T) {
+	response := NewHttpResponse()
+	response.addBodyPartsFromFile("/permissionDenied.html")
+
+	actual := strings.Contains(response.body, "internalServerError.html")
+	expected := true
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+}
+
+func TestCreateHeaderFromNotFoundHtml(t *testing.T) {
+	response := NewHttpResponse()
+	response.addBodyPartsFromFile("/fugafuga")
+
+	actual := strings.Contains(response.status, "404 Not Found")
+	expected := true
+	if actual != expected {
+		t.Errorf("got %v\nwant %v", actual, expected)
+	}
+}
+
+func TestCreateHeaderFromPanic(t *testing.T) {
+	response := NewHttpResponse()
+	response.addBodyPartsFromFile("/permissionDenied.html")
+
+	actual := strings.Contains(response.status, "500 Internal Server Error")
 	expected := true
 	if actual != expected {
 		t.Errorf("got %v\nwant %v", actual, expected)
