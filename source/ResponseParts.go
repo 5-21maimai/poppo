@@ -29,7 +29,8 @@ func makeContentLength(body string) string {
 
 // filenameからcontenttypeを設定
 func makeContentType(filename string) string {
-	kakuchoshi := strings.Split(filename, ".")[1]
+	a := strings.Split(filename, ".")
+	kakuchoshi := a[len(a)-1]
 	renponseParts := NewResponseParts()
 	contentType := renponseParts.contentTypes[kakuchoshi]
 

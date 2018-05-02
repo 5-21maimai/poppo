@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"image/gif"
 	"image/jpeg"
 	"image/png"
@@ -13,26 +14,27 @@ import (
 
 // HttpResponse.bodyにコンテンツを追加する（ファイルを読み込む）
 func (p *HttpResponse) addBodyPartsFromFile(path string) {
-	filename := ""
+	filename := "../public/"
 
 	switch path {
 	case "/hello":
-		filename = "hello.html"
+		filename = filename + "hello.html"
 		p.body = p.createStringBody(filename)
 	case "/":
-		filename = "index.html"
+		filename = filename + "index.html"
 		p.body = p.createStringBody(filename)
 	case "/eevee":
-		filename = "eevee.html"
+		filename = filename + "eevee.html"
 		p.body = p.createStringBody(filename)
 	case "/methodNotAllowed":
-		filename = "methodNotAllowed.html"
+		filename = filename + "methodNotAllowed.html"
 		p.body = p.createStringBody(filename)
 	default:
-		filename = strings.Trim(path, "/")
+		filename = filename + strings.Trim(path, "/")
+		fmt.Println(filename)
 		if _, err := os.Stat(filename); err != nil {
 			// not found
-			filename = "notFound.html"
+			filename = "../public/notFound.html"
 			p.body = p.createStringBody(filename)
 			p.status = "404 Not Found"
 		} else {
@@ -45,7 +47,7 @@ func (p *HttpResponse) addBodyPartsFromFile(path string) {
 	}
 
 	if p.body == "" {
-		filename = "internalServerError.html"
+		filename = "../public/internalServerError.html"
 		p.body = p.createStringBody(filename)
 		p.status = "500 Internal Server Error"
 	}
