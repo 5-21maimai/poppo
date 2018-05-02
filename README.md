@@ -1,2 +1,2 @@
 # poppo
-golongでHTTPサーバーを作りました
+golangでHTTPサーバーを作りました
